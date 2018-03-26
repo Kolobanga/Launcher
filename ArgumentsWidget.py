@@ -1,5 +1,3 @@
-import sys
-import os
 import json
 import re
 
@@ -75,11 +73,6 @@ class ArgumentsWidget(QW.QWidget):
 
         self.spacerItem = QW.QSpacerItem(20, 40, QW.QSizePolicy.Minimum, QW.QSizePolicy.Expanding)
 
-        # string = r'-geometry #int(Width) #int(Height)+#int(Left)+#int(Top) #string(Haha) #combobox["k":"Kilobytes", "M":"Megabytes"]()'
-        # for i in range(100):
-        #     self.createElements(string)
-        #
-        # self.createElements(string)
 
     def createElements(self, template):
         MinValue = -999999
@@ -105,14 +98,14 @@ class ArgumentsWidget(QW.QWidget):
             if comboItems:
                 comboItems = json.loads(comboItems)
                 # print(comboItems)
-            hint = var[var.find('(')+1:var.find(')')]
+            tip = var[var.find('(') + 1:var.find(')')]
             if varType == 'int':
                 integer = QW.QSpinBox()
                 integer.setFixedSize(FixedWidth, FixedHeight)
                 # integer.setValue(0)
                 integer.setMinimum(MinValue)
                 integer.setMaximum(MaxValue)
-                integer.setToolTip(hint)
+                integer.setToolTip(tip)
                 layout.addWidget(integer)
             elif varType == 'flo':
                 real = QW.QDoubleSpinBox()
@@ -120,14 +113,14 @@ class ArgumentsWidget(QW.QWidget):
                 # real.setValue(0)
                 real.setMinimum(MinValue)
                 real.setMaximum(MaxValue)
-                real.setToolTip(hint)
+                real.setToolTip(tip)
                 layout.addWidget(real)
             elif varType == 'str':
                 string = QW.QLineEdit()
                 string.setMinimumWidth(60)
                 string.setFixedHeight(FixedHeight)
                 # string.setText('')
-                string.setToolTip(hint)
+                string.setToolTip(tip)
                 layout.addWidget(string)
             elif varType == 'com':
                 combo = QW.QComboBox()
@@ -136,7 +129,7 @@ class ArgumentsWidget(QW.QWidget):
                 for name, hint in comboItems.items():
                     combo.addItem('{} ({})'.format(name, hint), name)
                 layout.addWidget(combo)
-                combo.setToolTip(hint)
+                combo.setToolTip(tip)
         self.scrollLayout.removeItem(self.spacerItem)
         self.scrollLayout.addWidget(widget)
         self.scrollLayout.addItem(self.spacerItem)
@@ -161,5 +154,10 @@ class ArgumentsWidget(QW.QWidget):
 if __name__ == '__main__':
     app = QW.QApplication([])
     window = ArgumentsWidget()
+
+    string = r'-geometry #int(Width) #int(Height)+#int(Left)+#int(Top) #string(Haha) #combobox["k":"Kilobytes", "M":"Megabytes"]()'
+    for i in range(100):
+        window.createElements(string)
+
     window.show()
-    sys.exit(app.exec_())
+    app.exec_()
