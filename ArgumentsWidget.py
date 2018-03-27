@@ -2,15 +2,13 @@ import json
 import re
 
 try:
-    from PyQt5 import QtWidgets as QW
-    from PyQt5 import QtCore as QC
-    from PyQt5 import QtGui as QG
-    from PyQt5.Qt import Qt as QT
+    from PyQt5.QtWidgets import *
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
 except ImportError:
-    from PySide2 import QtWidgets as QW
-    from PySide2 import QtCore as QC
-    from PySide2 import QtGui as QG
-    from PySide2.QtCore import Qt as QT
+    from PySide2.QtWidgets import *
+    from PySide2.QtCore import *
+    from PySide2.QtGui import *
 
 
 class ArgumentsWidgetItem(object):
@@ -55,23 +53,23 @@ class ArgumentsWidgetItem(object):
     #     pass
 
 
-class ArgumentsWidget(QW.QWidget):
+class ArgumentsWidget(QWidget):
     def __init__(self, parent=None):
         super(ArgumentsWidget, self).__init__(parent)
         self._elements = {}  # Visual Elements
 
-        self.scrollLayout = QW.QVBoxLayout()
-        self.scrollAreaWidget = QW.QWidget()
+        self.scrollLayout = QVBoxLayout()
+        self.scrollAreaWidget = QWidget()
         self.scrollAreaWidget.setLayout(self.scrollLayout)
 
-        self.scrollArea = QW.QScrollArea()
+        self.scrollArea = QScrollArea()
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setWidget(self.scrollAreaWidget)
 
-        self.mainLayout = QW.QVBoxLayout(self)
+        self.mainLayout = QVBoxLayout(self)
         self.mainLayout.addWidget(self.scrollArea)
 
-        self.spacerItem = QW.QSpacerItem(20, 40, QW.QSizePolicy.Minimum, QW.QSizePolicy.Expanding)
+        self.spacerItem = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
 
     def createElements(self, template):
@@ -83,12 +81,12 @@ class ArgumentsWidget(QW.QWidget):
         variables = re.findall(r'\#.*?\)', template)
         if len(variables) < 1:
             return
-        widget = QW.QWidget(self.scrollAreaWidget)
-        # widget.setSizePolicy(QW.QSizePolicy.Expanding, QW.QSizePolicy.Preferred)
-        layout = QW.QHBoxLayout(widget)
+        widget = QWidget(self.scrollAreaWidget)
+        # widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
-        label = QW.QCheckBox('Argument name')
+        label = QCheckBox('Argument name')
         label.setFixedSize(100, FixedHeight)
         layout.addWidget(label)
         for var in variables:
@@ -100,7 +98,7 @@ class ArgumentsWidget(QW.QWidget):
                 # print(comboItems)
             tip = var[var.find('(') + 1:var.find(')')]
             if varType == 'int':
-                integer = QW.QSpinBox()
+                integer = QSpinBox()
                 integer.setFixedSize(FixedWidth, FixedHeight)
                 # integer.setValue(0)
                 integer.setMinimum(MinValue)
@@ -108,7 +106,7 @@ class ArgumentsWidget(QW.QWidget):
                 integer.setToolTip(tip)
                 layout.addWidget(integer)
             elif varType == 'flo':
-                real = QW.QDoubleSpinBox()
+                real = QDoubleSpinBox()
                 real.setFixedSize(FixedWidth, FixedHeight)
                 # real.setValue(0)
                 real.setMinimum(MinValue)
@@ -116,14 +114,14 @@ class ArgumentsWidget(QW.QWidget):
                 real.setToolTip(tip)
                 layout.addWidget(real)
             elif varType == 'str':
-                string = QW.QLineEdit()
+                string = QLineEdit()
                 string.setMinimumWidth(60)
                 string.setFixedHeight(FixedHeight)
                 # string.setText('')
                 string.setToolTip(tip)
                 layout.addWidget(string)
             elif varType == 'com':
-                combo = QW.QComboBox()
+                combo = QComboBox()
                 combo.setFixedSize(100, FixedHeight)
                 # combo.setCurrentIndex(0)
                 for name, hint in comboItems.items():
@@ -152,7 +150,7 @@ class ArgumentsWidget(QW.QWidget):
 
 
 if __name__ == '__main__':
-    app = QW.QApplication([])
+    app = QApplication([])
     window = ArgumentsWidget()
 
     string = r'-geometry #int(Width) #int(Height)+#int(Left)+#int(Top) #string(Haha) #combobox["k":"Kilobytes", "M":"Megabytes"]()'
