@@ -1,6 +1,8 @@
-import sys
-import os
 import json
+import os
+import sys
+import win32com.client
+import pythoncom
 
 try:
     from PyQt5.QtWidgets import *
@@ -11,45 +13,68 @@ except ImportError:
     from PySide2.QtCore import *
     from PySide2.QtGui import *
 
-from ArgumentsWidget import *
+from arguments_widget import ArgumentsWidget
+from settings import SettingsDialog
 
 
-def getRootDir():
+def rootDir():
     return os.path.dirname(__file__)
+
+
+def homeDir():
+    raise NotImplementedError
+
+
+def isWindowsOS():
+    return sys.platform.startswith('win')
+
+
+def isLinuxOS():
+    return sys.platform.startswith('linux')
+
+
+def isMacOS():
+    return sys.platform == 'darwin'
+
 
 configs = []
 presets = []
 applications = {}
 
+
 def loadConfigs(configsFolder='./configs'):
     for file in os.listdir(configsFolder):
         if os.path.splitext(file)[-1].lower() == '.cfg':
-            path = os.path.join(getRootDir(), 'configs', file)
+            path = os.path.join(rootDir(), 'configs', file)
             with open(path, 'rt') as f:
-                j = json.load(f)
-                versions = j['AppVersion']
+                data = json.load(f)
+                versions = data['AppVersion']
             try:
-                applications[j['AppName']] == None
+                applications[data['AppName']] == None
             except KeyError:
-                applications[j['AppName']] = []
+                applications[data['AppName']] = []
             for version in versions:
-                applications[j['AppName']].append(version)
-            configs.append(j)
+                applications[data['AppName']].append(version)
+            configs.append(data)
+
 
 def loadPresets(presetsFolder='./presets'):
     for file in os.listdir(presetsFolder):
         if os.path.splitext(file)[-1].lower() == '.set':
             presets.append(os.path.splitext(file)[0])
+    return presets
 
-if __name__ == '__main__':
-    loadConfigs()
-    print(configs)
-    print(applications)
-    loadPresets()
-    print(presets)
+
+loadConfigs()
+print(configs)
+print(applications)
+loadPresets()
+print(presets)
+
 
 def createNewPreset():
     pass
+
 
 def launchApplication():
     if sys.platform.startswith('win'):
@@ -58,6 +83,11 @@ def launchApplication():
         pass
     elif sys.platform == 'darwin':
         pass
+
+
+def createWindowsShortcut(targetLink, path, name, workDir):
+    pass
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -79,19 +109,19 @@ class MainWindow(QMainWindow):
         self.mainMenu.addMenu(self.appMenu)
 
         self.settingsAction = QAction('Settings', self)
-        self.settingsAction.triggered.connect(self.callSettings)
+        self.settingsAction.triggered.connect(self.settings)
         self.appMenu.addAction(self.settingsAction)
 
         self.appMenu.addSeparator()
 
         self.quitAction = QAction('Quit', self)
-        self.quitAction.triggered.connect(lambda: app.exit(0))
+        self.quitAction.triggered.connect(lambda: qApp.exit(0))
         self.appMenu.addAction(self.quitAction)
 
         self.aboutMenu = QMenu('About')
         self.mainMenu.addMenu(self.aboutMenu)
 
-        self.aboutMenu.addAction('About', self.callAbout)
+        self.aboutMenu.addAction('About', self.about)
 
         # Layouts
         self.verticalLayout = QVBoxLayout(self.centralwidget)
@@ -111,9 +141,10 @@ class MainWindow(QMainWindow):
         self.launchButton = QPushButton('Launch')
         self.launchButton.setFixedWidth(80)
         self.controlsLayout.addWidget(self.launchButton)
-        self.createLinkButton = QPushButton('Create Link')
-        self.createLinkButton.setFixedWidth(80)
-        self.controlsLayout.addWidget(self.createLinkButton)
+        if isWindowsOS():
+            self.createShortcutButton = QPushButton('Create Shortcut')
+            self.createShortcutButton.setFixedWidth(100)
+            self.controlsLayout.addWidget(self.createShortcutButton)
         self.newPresetButton = QPushButton('New Preset')
         self.newPresetButton.setFixedWidth(80)
         self.controlsLayout.addWidget(self.newPresetButton)
@@ -137,21 +168,20 @@ class MainWindow(QMainWindow):
         self.args = ArgumentsWidget()
         self.flagsTabMainLayout.addWidget(self.args)
 
-        self.lab1 = QLabel('Application')
-        self.comb1 = QComboBox()
-        self.comb1.addItems(list(applications.keys()))  # To function
-        self.comb1.currentTextChanged.connect(self.fillComb2)
-        self.lab2 = QLabel('Version')
-        self.comb2 = QComboBox()
-        self.fillComb2()
-        self.flagsTabTopSpacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Ignored)
+        self.appLabel = QLabel('Application')
+        self.appCombo = QComboBox()
+        self.appCombo.addItems(list(applications.keys()))  # To function
+        self.appCombo.currentTextChanged.connect(self.fillVersionCombo)
+        self.versionLabel = QLabel('Version')
+        self.versionCombo = QComboBox()
+        self.fillVersionCombo()
+        self.flagsTabTopRightSpacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Ignored)
 
-        self.flagsTabTopLayout.addWidget(self.lab1)
-        self.flagsTabTopLayout.addWidget(self.comb1)
-        self.flagsTabTopLayout.addWidget(self.lab2)
-        self.flagsTabTopLayout.addWidget(self.comb2)
-        self.flagsTabTopLayout.addSpacerItem(self.flagsTabTopSpacer)
-
+        self.flagsTabTopLayout.addWidget(self.appLabel)
+        self.flagsTabTopLayout.addWidget(self.appCombo)
+        self.flagsTabTopLayout.addWidget(self.versionLabel)
+        self.flagsTabTopLayout.addWidget(self.versionCombo)
+        self.flagsTabTopLayout.addSpacerItem(self.flagsTabTopRightSpacer)
 
         # Environment Variables Tab
         self.envVarsTab = QWidget()
@@ -172,7 +202,7 @@ class MainWindow(QMainWindow):
         self.appTabMainLayout.addLayout(self.middleButtonsLayout)
         self.middleButtonsSpacerTop = QSpacerItem(10, 10, QSizePolicy.Ignored, QSizePolicy.Expanding)
         self.middleButtonsLayout.addSpacerItem(self.middleButtonsSpacerTop)
-        self.middleButtonsSpacerBottom= QSpacerItem(10, 10, QSizePolicy.Ignored, QSizePolicy.Expanding)
+        self.middleButtonsSpacerBottom = QSpacerItem(10, 10, QSizePolicy.Ignored, QSizePolicy.Expanding)
         self.moveAppRight = QPushButton('>>')
         self.moveAppRight.setFixedWidth(25)
         self.middleButtonsLayout.addWidget(self.moveAppRight)
@@ -183,7 +213,6 @@ class MainWindow(QMainWindow):
         self.presetAppsList = QListWidget()
         self.appTabMainLayout.addWidget(self.presetAppsList)
         self.tabs.addTab(self.appTab, 'Applications')
-
 
         # houdini16_5 = {'AppName': 'Houdini',
         #           'AppVersion': ['16.0', '16.5'],
@@ -205,38 +234,43 @@ class MainWindow(QMainWindow):
         # with open('struct.json', 'w') as file:
         #     json.dump(houdini16_5, file, indent=4)
 
-        # self.fillPresetList()
+        self.fillPresetList()
 
-    def fillComb2(self):
-        self.comb2.clear()
-        self.comb2.addItems(sorted(applications[self.comb1.currentText()], reverse=True))
+        self.settingsWindow = SettingsDialog()
 
-    def callSettings(self):
-        pass
+    def fillVersionCombo(self):
+        self.versionCombo.clear()
+        self.versionCombo.addItems(sorted(applications[self.appCombo.currentText()], reverse=True))
 
-    def callAbout(self):
-        print('Python 3 / PyQt5')
+    def settings(self):
+        self.settingsWindow.exec_()
 
-    # def fillPresetList(self):
-    #     for preset in scanPresetsFolder():
-    #         item = QListWidgetItem(preset)
-    #         self.presetList.addItem(item)
+    def about(self):
+        raise NotImplementedError
+
+    def fillPresetList(self):
+        for preset in loadPresets():
+            item = QListWidgetItem(os.path.basename(os.path.splitext(preset)[0]), self.presetList)
 
     def presetListMenu(self):
         menu = QMenu()
-        ACTIONS = {'New preset':1}
+        ACTIONS = {'New preset': 1}
         for a in ACTIONS:
             action = QAction(a)
             menu.addAction()
         menu.exec_(QCursor.pos())
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    mainWindow = MainWindow()
+    def launch(self):
+        cmd = r'S:\Houdini 16.5.588\bin\houdinifx.exe'
+        if os.path.exists(cmd):
+            os.system(cmd)
 
-    # Style
-    # with open('style.qss', 'rt') as style:
-    #     app.setStyleSheet(style.read())
+    def createShortcut(self):
+        # Windows only
+        pass
 
-    mainWindow.show()
-    sys.exit(app.exec_())
+    def addApplication(self):
+        appLink = QFileDialog.getOpenFileName(self, caption='Application', filter='Application (*.exe)')[0]
+        if appLink:
+            item = QListWidgetItem(appLink, self.allAppsList)
+            item.setCheckState(Qt.Checked)
