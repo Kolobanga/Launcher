@@ -36,7 +36,7 @@ class Config(Serialization):
     def flags(self):
         return self.__flags
 
-    def serialize(self, data):
+    def serialize(self):
         data = {'AppName': self.__name,
                 'AppVersion': self.__versions,
                 'Flags': [{'Name': name, 'Description': desc_temp[0], 'Template': desc_temp[1]} for name, desc_temp in self.__flags.items()]}
