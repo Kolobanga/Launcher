@@ -1,8 +1,6 @@
 import json
 import os
 import sys
-import win32com.client
-import pythoncom
 
 try:
     from PyQt5.QtWidgets import *
@@ -14,7 +12,6 @@ except ImportError:
     from PySide2.QtGui import *
 
 from arguments_widget import ArgumentsWidget
-from settings import SettingsDialog
 
 
 def rootDir():
@@ -22,7 +19,10 @@ def rootDir():
 
 
 def homeDir():
-    raise NotImplementedError
+    if isWindowsOS():
+        return os.path.join(os.path.expanduser('~'), 'Documents', 'Launcher')
+    else:
+        return os.path.join(os.path.expanduser('~'), 'Launcher')
 
 
 def isWindowsOS():
@@ -235,8 +235,6 @@ class MainWindow(QMainWindow):
         #     json.dump(houdini16_5, file, indent=4)
 
         self.fillPresetList()
-
-        self.settingsWindow = SettingsDialog()
 
     def fillVersionCombo(self):
         self.versionCombo.clear()

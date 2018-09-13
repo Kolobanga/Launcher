@@ -1,3 +1,4 @@
+import os
 import sys
 
 try:
@@ -9,7 +10,20 @@ except ImportError:
     from PySide2.QtCore import *
     from PySide2.QtGui import *
 
-from launcher import MainWindow
+from launcher import MainWindow, homeDir
+
+
+def checkHome():
+    homePath = homeDir()
+    if not os.path.exists(homePath):
+        os.mkdir(homePath)
+    configsPath = os.path.join(homePath, 'configs')
+    if not os.path.exists(configsPath):
+        os.mkdir(configsPath)
+    presetsPath = os.path.join(homePath, 'presets')
+    if not os.path.exists(presetsPath):
+        os.mkdir(presetsPath)
+
 
 if __name__ == '__main__':
     def my_excepthook(type, value, tback):
@@ -17,6 +31,7 @@ if __name__ == '__main__':
 
 
     sys.excepthook = my_excepthook
+    checkHome()
     app = QApplication(sys.argv)
     mainWindow = MainWindow()
     mainWindow.show()
