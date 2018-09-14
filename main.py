@@ -10,7 +10,7 @@ except ImportError:
     from PySide2.QtCore import *
     from PySide2.QtGui import *
 
-from launcher import MainWindow, homeDir
+from launcher import MainWindow, homeDir, rootDir
 
 
 def checkHome():

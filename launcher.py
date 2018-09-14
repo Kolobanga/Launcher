@@ -2,6 +2,9 @@ import json
 import os
 import sys
 
+from config import Config
+from preset import Preset
+
 try:
     from PyQt5.QtWidgets import *
     from PyQt5.QtCore import *
@@ -36,40 +39,27 @@ def isLinuxOS():
 def isMacOS():
     return sys.platform == 'darwin'
 
-
-configs = []
-presets = []
-applications = {}
-
-
-def loadConfigs(configsFolder='./configs'):
-    for file in os.listdir(configsFolder):
-        if os.path.splitext(file)[-1].lower() == '.cfg':
-            path = os.path.join(rootDir(), 'configs', file)
-            with open(path, 'rt') as f:
-                data = json.load(f)
-                versions = data['AppVersion']
-            try:
-                applications[data['AppName']] == None
-            except KeyError:
-                applications[data['AppName']] = []
-            for version in versions:
-                applications[data['AppName']].append(version)
-            configs.append(data)
+def loadConfigs():
+    configs = []
+    for directory in rootDir(), homeDir():
+        for root, folders, files in os.walk(os.path.join(directory, 'configs')):
+            for file in files:
+                if file.lower().endswith('.cfg'):
+                    configs.append(Config().loadFromFile(os.path.join(root, file)))
+    return configs
 
 
-def loadPresets(presetsFolder='./presets'):
-    for file in os.listdir(presetsFolder):
-        if os.path.splitext(file)[-1].lower() == '.set':
-            presets.append(os.path.splitext(file)[0])
+def loadPrestes():
+    presets = []
+    for directory in rootDir(), homeDir():
+        for root, folders, files in os.walk(os.path.join(directory, 'presets')):
+            for file in files:
+                if file.lower().endswith('.set'):
+                    presets.append(Preset().loadFromFile(os.path.join(root, file)))
     return presets
 
-
-loadConfigs()
-print(configs)
-print(applications)
-loadPresets()
-print(presets)
+print(loadConfigs())
+print(loadPrestes())
 
 
 def createNewPreset():
@@ -89,6 +79,7 @@ def createWindowsShortcut(targetLink, path, name, workDir):
     pass
 
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -105,18 +96,8 @@ class MainWindow(QMainWindow):
         self.mainMenu = QMenuBar()
         self.setMenuBar(self.mainMenu)
 
-        self.appMenu = QMenu('Application')
-        self.mainMenu.addMenu(self.appMenu)
-
-        self.settingsAction = QAction('Settings', self)
-        self.settingsAction.triggered.connect(self.settings)
-        self.appMenu.addAction(self.settingsAction)
-
-        self.appMenu.addSeparator()
-
         self.quitAction = QAction('Quit', self)
         self.quitAction.triggered.connect(lambda: qApp.exit(0))
-        self.appMenu.addAction(self.quitAction)
 
         self.aboutMenu = QMenu('About')
         self.mainMenu.addMenu(self.aboutMenu)
@@ -147,6 +128,7 @@ class MainWindow(QMainWindow):
             self.controlsLayout.addWidget(self.createShortcutButton)
         self.newPresetButton = QPushButton('New Preset')
         self.newPresetButton.setFixedWidth(80)
+        self.newPresetButton.clicked.connect(self.newPreset)
         self.controlsLayout.addWidget(self.newPresetButton)
         self.saveButton = QPushButton('Save Preset')
         self.saveButton.setFixedWidth(80)
@@ -170,7 +152,7 @@ class MainWindow(QMainWindow):
 
         self.appLabel = QLabel('Application')
         self.appCombo = QComboBox()
-        self.appCombo.addItems(list(applications.keys()))  # To function
+        # self.appCombo.addItems(list(applications.keys()))  # To function
         self.appCombo.currentTextChanged.connect(self.fillVersionCombo)
         self.versionLabel = QLabel('Version')
         self.versionCombo = QComboBox()
@@ -238,17 +220,25 @@ class MainWindow(QMainWindow):
 
     def fillVersionCombo(self):
         self.versionCombo.clear()
-        self.versionCombo.addItems(sorted(applications[self.appCombo.currentText()], reverse=True))
+        # self.versionCombo.addItems(sorted(applications[self.appCombo.currentText()], reverse=True))
 
-    def settings(self):
-        self.settingsWindow.exec_()
+    def newPreset(self):
+        answer = QInputDialog.getText(self, 'New Preset', 'Enter name:')
+        if answer[1]:
+            name = answer[0]
+            preset = Preset()
+            preset.setName(name)
+            item = QListWidgetItem(name, self.presetList)
+            item.setData(Qt.UserRole, preset)
+
 
     def about(self):
         raise NotImplementedError
 
     def fillPresetList(self):
-        for preset in loadPresets():
-            item = QListWidgetItem(os.path.basename(os.path.splitext(preset)[0]), self.presetList)
+        pass
+        # for preset in loadPresets():
+        #     item = QListWidgetItem(os.path.basename(os.path.splitext(preset)[0]), self.presetList)
 
     def presetListMenu(self):
         menu = QMenu()
@@ -272,3 +262,4 @@ class MainWindow(QMainWindow):
         if appLink:
             item = QListWidgetItem(appLink, self.allAppsList)
             item.setCheckState(Qt.Checked)
+
