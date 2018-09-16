@@ -10,7 +10,7 @@ class Serialization:
 
     def saveToFile(self, filename):
         try:
-            data = json.dumps(self.serialize({}), ensure_ascii=False, indent=4, sort_keys=False)
+            data = json.dumps(self.serialize(), ensure_ascii=False, indent=4, sort_keys=False)
             with open(filename, 'wt', encoding='utf-8') as file:
                 file.write(data)
         except Exception as e:

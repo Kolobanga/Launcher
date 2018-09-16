@@ -10,7 +10,7 @@ except ImportError:
     from PySide2.QtCore import *
     from PySide2.QtGui import *
 
-from launcher import MainWindow, homeDir, rootDir
+from launcher import MainWindow, homeDir, loadConfigs
 
 
 def checkHome():
@@ -31,9 +31,13 @@ if __name__ == '__main__':
 
 
     sys.excepthook = my_excepthook
-    checkHome()
-    app = QApplication(sys.argv)
-    mainWindow = MainWindow()
-    mainWindow.show()
-    exitCode = app.exec_()
-    sys.exit(exit())
+    if len(sys.argv) < 2:
+        checkHome()
+        app = QApplication(sys.argv)
+        qApp.configs = loadConfigs()
+        mainWindow = MainWindow()
+        mainWindow.show()
+        exitCode = app.exec_()
+    else:
+        pass
+    sys.exit(exitCode)
