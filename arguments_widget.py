@@ -72,29 +72,30 @@ class ArgumentsWidget(QWidget):
         self.spacerItem = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
 
-    def createElements(self, template):
+    def createLine(self, template, name, description=''):
         MinValue = -999999
         MaxValue = +999999
         FixedWidth = 50
         FixedHeight = 25
 
         variables = re.findall(r'\#.*?\)', template)
-        if len(variables) < 1:
-            return
+        # if len(variables) < 1:
+        #     return
         widget = QWidget(self.scrollAreaWidget)
+        widget.setToolTip(description)
         # widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
-        label = QCheckBox('Argument name')
+        label = QCheckBox(name)
         label.setFixedSize(100, FixedHeight)
         layout.addWidget(label)
         for var in variables:
             varType = var[1:4].lower()
             # comboItems = {'k': 'Kilobytes', 'M': 'Megabytes'}
             comboItems = var[var.find('['):var.find(']')+1].replace('[', '{').replace(']', '}')
-            if comboItems:
-                comboItems = json.loads(comboItems)
+            # if comboItems:
+                # comboItems = json.loads(comboItems)
                 # print(comboItems)
             tip = var[var.find('(') + 1:var.find(')')]
             if varType == 'int':
@@ -120,17 +121,21 @@ class ArgumentsWidget(QWidget):
                 # string.setText('')
                 string.setToolTip(tip)
                 layout.addWidget(string)
-            elif varType == 'com':
-                combo = QComboBox()
-                combo.setFixedSize(100, FixedHeight)
-                # combo.setCurrentIndex(0)
-                for name, hint in comboItems.items():
-                    combo.addItem('{} ({})'.format(name, hint), name)
-                layout.addWidget(combo)
-                combo.setToolTip(tip)
+            # elif varType == 'com':
+            #     combo = QComboBox()
+            #     combo.setFixedSize(100, FixedHeight)
+            #     # combo.setCurrentIndex(0)
+            #     for name, hint in comboItems.items():
+            #         combo.addItem('{} ({})'.format(name, hint), name)
+            #     layout.addWidget(combo)
+            #     combo.setToolTip(tip)
         self.scrollLayout.removeItem(self.spacerItem)
         self.scrollLayout.addWidget(widget)
         self.scrollLayout.addItem(self.spacerItem)
+
+    def createLinesFromConfig(self, config):
+        for flag in config.flags():
+            self.createLine(flag['Template'], flag['Name'], flag['Description'])
 
     def addArgument(self, name, description, template):
         pass
@@ -155,7 +160,7 @@ if __name__ == '__main__':
 
     string = r'-geometry #int(Width) #int(Height)+#int(Left)+#int(Top) #string(Haha) #combobox["k":"Kilobytes", "M":"Megabytes"]()'
     for i in range(100):
-        window.createElements(string)
+        window.createLine(string)
 
     window.show()
     app.exec_()
