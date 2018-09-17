@@ -16,7 +16,7 @@ class Config(Serialization):
         return self.__name
 
     def addFlag(self, name, template, description=''):
-        self.__flags[name] = [template, description]
+        self.__flags[name] = {'Name:': name, 'Template': template, 'Description': description}
 
     def removeFlag(self, name):
         if name in self.__flags:
@@ -27,11 +27,11 @@ class Config(Serialization):
 
     def serialize(self):
         data = {'AppName': self.__name,
-                'Flags': [{'Name': name, 'Description': desc_temp[0], 'Template': desc_temp[1]} for name, desc_temp in self.__flags.items()]}
+                'Flags': [{'Name': name, 'Description': desc_temp[0], 'Template': desc_temp[1]} for name, desc_temp in self.__flags.items()]}  # Todo: check
         return super().serialize(data)
 
     def deserialize(self, data):
         self.__name = data.get('AppName')
         for flag in data.get('Flags'):
-            self.__flags[flag.get('Name')] = [flag.get('Template'), flag.get('Description')]
+            self.__flags[flag.get('Name')] = flag
         return super().deserialize(data)

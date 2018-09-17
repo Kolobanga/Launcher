@@ -38,19 +38,19 @@ class ArgumentsWidgetItem(object):
             self._description(description)
 
     def addFlag(self, description=''):
-        pass
+        raise NotImplementedError
 
     def addInteger(self, description=''):
-        pass
+        raise NotImplementedError
 
     def addFloat(self, description=''):
-        pass
+        raise NotImplementedError
 
     def addString(self, description=''):
-        pass
+        raise NotImplementedError
 
     def addComboBox(self, components={}, description=''):
-        pass
+        raise NotImplementedError
 
     # def setTemplate(self):
     #     pass
@@ -91,12 +91,12 @@ class ArgumentsWidget(QWidget):
         widget = QWidget(self.scrollAreaWidget)
         widget.setToolTip(description)
         # widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.lineLayout = QHBoxLayout(widget)
-        self.lineLayout.setContentsMargins(0, 0, 0, 0)
-        self.lineLayout.setSpacing(2)
+        lineLayout = QHBoxLayout(widget)
+        lineLayout.setContentsMargins(0, 0, 0, 0)
+        lineLayout.setSpacing(2)
         label = QCheckBox(name)
         label.setFixedHeight(FixedHeight)
-        self.lineLayout.addWidget(label)
+        lineLayout.addWidget(label)
         for var in variables:
             varType = var[1:4].lower()
             comboItems = var[var.find('['):var.find(']') + 1].replace('[', '{').replace(']', '}')
@@ -110,7 +110,7 @@ class ArgumentsWidget(QWidget):
                 integer.setMinimum(MinValue)
                 integer.setMaximum(MaxValue)
                 integer.setToolTip(tip)
-                self.lineLayout.addWidget(integer)
+                lineLayout.addWidget(integer)
             elif varType == 'flo':
                 real = QDoubleSpinBox()
                 real.setFixedSize(FixedWidth, FixedHeight)
@@ -118,14 +118,14 @@ class ArgumentsWidget(QWidget):
                 real.setMinimum(MinValue)
                 real.setMaximum(MaxValue)
                 real.setToolTip(tip)
-                self.lineLayout.addWidget(real)
+                lineLayout.addWidget(real)
             elif varType == 'str':
                 string = QLineEdit()
                 string.setMinimumWidth(60)
                 string.setFixedHeight(FixedHeight)
                 # string.setText('')
                 string.setToolTip(tip)
-                self.lineLayout.addWidget(string)
+                lineLayout.addWidget(string)
             elif varType == 'com':
                 combo = QComboBox()
                 combo.setFixedHeight(FixedHeight)
@@ -133,29 +133,29 @@ class ArgumentsWidget(QWidget):
                 # combo.setCurrentIndex(0)
                 for name, hint in comboItems.items():
                     combo.addItem('{} ({})'.format(name, hint), name)
-                self.lineLayout.addWidget(combo)
+                lineLayout.addWidget(combo)
                 combo.setToolTip(tip)
         rightSpacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Ignored)
-        self.lineLayout.addSpacerItem(rightSpacer)
+        lineLayout.addSpacerItem(rightSpacer)
         self.scrollAreaWidget.layout().removeItem(self.spacerItem)
         self.scrollAreaWidget.layout().addWidget(widget)
         self.scrollAreaWidget.layout().addItem(self.spacerItem)
 
     def createLinesFromConfig(self, config):
-        for name, data in config.flags().items():
-            self.createLine(data[1], name, '<qt>{0}</qt>'.format(data[0]))
+        for flag in config.flags().values():
+            self.createLine(flag.get('Template'), flag.get('Name'), flag.get('Description'))
 
     def addArgument(self, name, description, template):
-        pass
+        raise NotImplementedError
 
     def addItem(self, item: ArgumentsWidgetItem):
-        pass
+        raise NotImplementedError
 
     def clear(self):
         clearLayout(self.scrollAreaWidget.layout())
 
     def loadFromText(self, text):
-        pass
+        raise NotImplementedError
 
     def loadFromFile(self, file):
         with open(file, 'rt') as file:
@@ -164,7 +164,10 @@ class ArgumentsWidget(QWidget):
 
 if __name__ == '__main__':
     app = QApplication([])
+    k = QTabWidget()
+    QVBoxLayout(k)
     window = ArgumentsWidget()
+    k.addTab(window, 'Command line Flags')
 
     # string = r'-geometry #int(Width) #int(Height)+#int(Left)+#int(Top) #string(Haha) #combobox["k":"Kilobytes", "M":"Megabytes"]()'
     with open(r'./configs/Houdini_16.0-16.5.cfg', 'rt') as file:
@@ -172,5 +175,5 @@ if __name__ == '__main__':
     for flag in data['Flags']:
         window.createLine(flag['Template'], flag['Name'], flag['Description'])
 
-    window.show()
+    k.show()
     app.exec_()

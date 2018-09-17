@@ -61,10 +61,6 @@ def loadPrestes():
     return presets
 
 
-def createNewPreset():
-    pass
-
-
 def launchApplication():
     if isWindowsOS():
         os.system()
@@ -75,7 +71,7 @@ def launchApplication():
 
 
 def createWindowsShortcut(targetLink, path, name, workDir):
-    pass
+    raise NotImplementedError
 
 
 class NewPresetDialog(QDialog):
@@ -261,7 +257,7 @@ class MainWindow(QMainWindow):
 
     def createShortcut(self):
         # Windows only
-        pass
+        raise NotImplementedError
 
     def addApplication(self):
         appLink = QFileDialog.getOpenFileName(self, caption='Application', filter='Application (*.exe)')[0]

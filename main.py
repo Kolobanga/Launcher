@@ -39,5 +39,5 @@ if __name__ == '__main__':
         mainWindow.show()
         exitCode = app.exec_()
     else:
-        pass
+        raise NotImplementedError
     sys.exit(exitCode)
