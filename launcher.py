@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 
@@ -39,27 +38,27 @@ def isLinuxOS():
 def isMacOS():
     return sys.platform == 'darwin'
 
+
 def loadConfigs():
-    configs = []
+    configs = {}
     for directory in rootDir(), homeDir():
         for root, folders, files in os.walk(os.path.join(directory, 'configs')):
             for file in files:
                 if file.lower().endswith('.cfg'):
-                    configs.append(Config().loadFromFile(os.path.join(root, file)))
+                    config = Config().loadFromFile(os.path.join(root, file))
+                    configs[config.name()] = config
     return configs
 
 
 def loadPrestes():
-    presets = []
+    presets = {}
     for directory in rootDir(), homeDir():
         for root, folders, files in os.walk(os.path.join(directory, 'presets')):
             for file in files:
                 if file.lower().endswith('.set'):
-                    presets.append(Preset().loadFromFile(os.path.join(root, file)))
+                    preset = Preset().loadFromFile(os.path.join(root, file))
+                    presets[preset.name()] = preset
     return presets
-
-print(loadConfigs())
-print(loadPrestes())
 
 
 def createNewPreset():
@@ -67,23 +66,62 @@ def createNewPreset():
 
 
 def launchApplication():
-    if sys.platform.startswith('win'):
+    if isWindowsOS():
         os.system()
-    elif sys.platform.startswith('linux'):
-        pass
-    elif sys.platform == 'darwin':
-        pass
+    elif isLinuxOS():
+        raise NotImplementedError
+    elif isMacOS():
+        raise NotImplementedError
 
 
 def createWindowsShortcut(targetLink, path, name, workDir):
     pass
 
 
+class NewPresetDialog(QDialog):
+    def __init__(self, parent=None):
+        super(NewPresetDialog, self).__init__(parent)
+
+        # Window
+        self.setWindowTitle('New Preset')
+        self.setFixedSize(QSize(220, 120))
+
+        QVBoxLayout(self)
+
+        self.presetNameEdit = QLineEdit()
+        self.presetNameEdit.setPlaceholderText('Name...')
+        self.layout().addWidget(self.presetNameEdit)
+
+        self.configCombo = QComboBox()
+
+        for config in loadConfigs().values():
+            self.configCombo.addItem(config.name(), config)
+        self.layout().addWidget(self.configCombo)
+
+        self.bottomButtons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal)
+        self.bottomButtons.setCenterButtons(True)
+        self.bottomButtons.accepted.connect(self.accept)
+        self.bottomButtons.rejected.connect(self.reject)
+        self.layout().addWidget(self.bottomButtons)
+
+    def name(self):
+        return self.presetNameEdit.text()
+
+    def config(self):
+        return self.configCombo.currentData(Qt.UserRole)
+
+    @staticmethod
+    def getData(parent=None):
+        dialog = NewPresetDialog(parent)
+        result = dialog.exec_()
+        return (dialog.name(), dialog.config(), result == QDialog.Accepted)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
+        # Window
         self.setWindowTitle('DCC Launcher')
         self.setMinimumSize(QSize(600, 400))
         self.resize(QSize(800, 500))
@@ -112,6 +150,10 @@ class MainWindow(QMainWindow):
         self.verticalLayout.addLayout(self.middleHorizontalLayout)
         # Presets Widget
         self.presetList = QListWidget()
+        self.presetList.itemClicked.connect(self.editPreset)
+        for preset in loadPrestes().values():
+            item = QListWidgetItem(preset.name(), self.presetList)
+            item.setData(Qt.UserRole, preset)
         self.presetList.setFixedWidth(130)
         self.middleHorizontalLayout.addWidget(self.presetList)
         self.rightMiddleLayout = QVBoxLayout()
@@ -142,28 +184,8 @@ class MainWindow(QMainWindow):
         self.rightMiddleLayout.addWidget(self.tabs)
 
         # Flags Tab
-        self.flagsTab = QWidget()
-        self.flagsTabMainLayout = QVBoxLayout(self.flagsTab)
-        self.flagsTabTopLayout = QHBoxLayout()
-        self.flagsTabMainLayout.addLayout(self.flagsTabTopLayout)
-        self.tabs.addTab(self.flagsTab, 'Command line Flags')
-        self.args = ArgumentsWidget()
-        self.flagsTabMainLayout.addWidget(self.args)
-
-        self.appLabel = QLabel('Application')
-        self.appCombo = QComboBox()
-        # self.appCombo.addItems(list(applications.keys()))  # To function
-        self.appCombo.currentTextChanged.connect(self.fillVersionCombo)
-        self.versionLabel = QLabel('Version')
-        self.versionCombo = QComboBox()
-        self.fillVersionCombo()
-        self.flagsTabTopRightSpacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Ignored)
-
-        self.flagsTabTopLayout.addWidget(self.appLabel)
-        self.flagsTabTopLayout.addWidget(self.appCombo)
-        self.flagsTabTopLayout.addWidget(self.versionLabel)
-        self.flagsTabTopLayout.addWidget(self.versionCombo)
-        self.flagsTabTopLayout.addSpacerItem(self.flagsTabTopRightSpacer)
+        self.flagsWidget = ArgumentsWidget()
+        self.tabs.addTab(self.flagsWidget, 'Command line Flags')
 
         # Environment Variables Tab
         self.envVarsTab = QWidget()
@@ -178,75 +200,59 @@ class MainWindow(QMainWindow):
         # Applications Tab
         self.appTab = QWidget()
         self.appTabMainLayout = QHBoxLayout(self.appTab)
+
+        # All Apps
+        self.addAppButton = QPushButton('Add Applications')
+        self.addAppButton.clicked.connect(self.addApplication)
         self.allAppsList = QListWidget()
-        self.appTabMainLayout.addWidget(self.allAppsList)
+        self.appTabLeftLayout = QVBoxLayout()
+        self.appTabLeftLayout.addWidget(self.addAppButton)
+        self.appTabLeftLayout.addWidget(self.allAppsList)
+        self.appTabMainLayout.addLayout(self.appTabLeftLayout)
+
+        # Middle Buttons
         self.middleButtonsLayout = QVBoxLayout()
         self.appTabMainLayout.addLayout(self.middleButtonsLayout)
         self.middleButtonsSpacerTop = QSpacerItem(10, 10, QSizePolicy.Ignored, QSizePolicy.Expanding)
         self.middleButtonsLayout.addSpacerItem(self.middleButtonsSpacerTop)
-        self.middleButtonsSpacerBottom = QSpacerItem(10, 10, QSizePolicy.Ignored, QSizePolicy.Expanding)
         self.moveAppRight = QPushButton('>>')
         self.moveAppRight.setFixedWidth(25)
         self.middleButtonsLayout.addWidget(self.moveAppRight)
         self.moveAppLeft = QPushButton('<<')
         self.moveAppLeft.setFixedWidth(25)
         self.middleButtonsLayout.addWidget(self.moveAppLeft)
+        self.middleButtonsSpacerBottom = QSpacerItem(10, 10, QSizePolicy.Ignored, QSizePolicy.Expanding)
         self.middleButtonsLayout.addSpacerItem(self.middleButtonsSpacerBottom)
+
+        # Added Apps
         self.presetAppsList = QListWidget()
         self.appTabMainLayout.addWidget(self.presetAppsList)
         self.tabs.addTab(self.appTab, 'Applications')
 
-        # houdini16_5 = {'AppName': 'Houdini',
-        #           'AppVersion': ['16.0', '16.5'],
-        #           'Flags': [{'Name': 'Foreground',
-        #                      'Description': 'In Mac OS X and Linux, when you run Houdini from the command line, by default it "backgrounds" itself, returning control of the terminal to the shell. This option instead keeps Houdini in the "foreground", meaning you won’t be able to type more commands to the shell until Houdini exists or you press ⌃ Ctrl + Z to pause the foreground process.',
-        #                      'Template': '-foreground'},
-        #                     {'Name': 'Background',
-        #                      'Description': 'Houdini will "background" itself after starting, returning control of the terminal to the shell. This is the default.',
-        #                      'Template': '-background'},
-        #                     {'Name': 'Geometry',
-        #                      'Description': 'Define the window geometry on the screen (see also -span). For example\nhoudini -geometry=WxH+X+Y\n(where W is width, H is height, X is horizontal position, and Y is vertical position). The geometry specification cannot have spaces. X and Y may be negative (in which case you would use - instead of + as a separator). Some window managers do not allow larger windows than the screen, overlapping of manager toolbars, and/or positioning offscreen.',
-        #                      'Template': '-geometry #int(Width) #int(Height)+#int(Left)+#int(Top)'},
-        #                     {'Name': 'Manual Cook Mode',
-        #                      'Description': 'Start Houdini in "manual" cook mode.',
-        #                      'Template': '-n'},
-        #                     {'Name': 'Span',
-        #                      'Description': 'When you specify this option on a computer with multiple monitors, Houdini will start up spanning all monitors, so the main Houdini window fills them all (where possible, discounting resolution differences and non-rectangular layouts). This only works on some window managers, and has no effect in single-monitor setups. Cannot be used with -geometry.',
-        #                      'Template': '-span'}]}
-        # with open('struct.json', 'w') as file:
-        #     json.dump(houdini16_5, file, indent=4)
-
-        self.fillPresetList()
-
-    def fillVersionCombo(self):
-        self.versionCombo.clear()
-        # self.versionCombo.addItems(sorted(applications[self.appCombo.currentText()], reverse=True))
+        qApp.configs = loadConfigs()
 
     def newPreset(self):
-        answer = QInputDialog.getText(self, 'New Preset', 'Enter name:')
-        if answer[1]:
+        answer = NewPresetDialog.getData(self)
+        if answer[2] and answer[0]:  # Accepted and not empty name
             name = answer[0]
-            preset = Preset()
+            preset = Preset(answer[1])
             preset.setName(name)
+            filename = os.path.join(homeDir(), 'presets', name + '.set')
+            if os.path.exists(filename):
+                dialog = QMessageBox(QMessageBox.Information,
+                                     'Confirm File Replace',
+                                     'Would you like to replace existing preset?',
+                                     QMessageBox.Ok | QMessageBox.Cancel)
+                result = dialog.exec_()
+                if result == QMessageBox.Rejected:
+                    return
+            preset.saveToFile(filename)
+
             item = QListWidgetItem(name, self.presetList)
             item.setData(Qt.UserRole, preset)
 
-
     def about(self):
         raise NotImplementedError
-
-    def fillPresetList(self):
-        pass
-        # for preset in loadPresets():
-        #     item = QListWidgetItem(os.path.basename(os.path.splitext(preset)[0]), self.presetList)
-
-    def presetListMenu(self):
-        menu = QMenu()
-        ACTIONS = {'New preset': 1}
-        for a in ACTIONS:
-            action = QAction(a)
-            menu.addAction()
-        menu.exec_(QCursor.pos())
 
     def launch(self):
         cmd = r'S:\Houdini 16.5.588\bin\houdinifx.exe'
@@ -263,3 +269,7 @@ class MainWindow(QMainWindow):
             item = QListWidgetItem(appLink, self.allAppsList)
             item.setCheckState(Qt.Checked)
 
+    def editPreset(self, item):
+        preset = item.data(Qt.UserRole)
+        self.flagsWidget.clear()
+        self.flagsWidget.createLinesFromConfig(preset.config())

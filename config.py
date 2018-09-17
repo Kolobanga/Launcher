@@ -8,9 +8,7 @@ class Config(Serialization):
         self.__flags = {}
 
     def clear(self):
-        self.__name = None
-        self.__versions = []
-        self.__flags = {}
+        super(Config, self).__init__()
 
     def setName(self, name):
         self.__name = name
@@ -30,8 +28,9 @@ class Config(Serialization):
     def addFlag(self, name, template, description=''):
         self.__flags[name] = [template, description]
 
-    def removeFlag(self, flagName):
-        del self.__flags[flagName]
+    def removeFlag(self, name):
+        if name in self.__flags:
+            del self.__flags[name]
 
     def flags(self):
         return self.__flags
@@ -43,8 +42,8 @@ class Config(Serialization):
         return super().serialize(data)
 
     def deserialize(self, data):
-        self.__name = data['AppName']
-        self.__versions = data['AppVersion']
-        for flag in data['Flags']:
-            self.__flags[flag['Name']] = [flag['Template'], flag['Description']]
+        self.__name = data.get('AppName')
+        self.__versions = data.get('AppVersion')
+        for flag in data.get('Flags'):
+            self.__flags[flag.get('Name')] = [flag.get('Template'), flag.get('Description')]
         return super().deserialize(data)

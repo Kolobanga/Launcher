@@ -1,7 +1,7 @@
 from config import Config
 
 
-class EmptyConfig(Config):
+class DefaultConfig(Config):
     def __init__(self):
         super().__init__()
         self.setName('Default')

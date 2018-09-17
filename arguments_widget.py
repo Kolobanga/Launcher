@@ -11,6 +11,15 @@ except ImportError:
     from PySide2.QtGui import *
 
 
+def clearLayout(layout):
+    while layout.count():
+        child = layout.takeAt(0)
+        if child.widget() is not None:
+            child.widget().deleteLater()
+        elif child.layout() is not None:
+            clearLayout(child.layout())
+
+
 class ArgumentsWidgetItem(object):
     def __init__(self, name=None, description='', template={}):
         self._name = name
@@ -58,9 +67,8 @@ class ArgumentsWidget(QWidget):
         super(ArgumentsWidget, self).__init__(parent)
         self._elements = {}  # Visual Elements
 
-        self.scrollLayout = QVBoxLayout()
         self.scrollAreaWidget = QWidget()
-        self.scrollAreaWidget.setLayout(self.scrollLayout)
+        QVBoxLayout(self.scrollAreaWidget)
 
         self.scrollArea = QScrollArea()
         self.scrollArea.setWidgetResizable(True)
@@ -70,7 +78,6 @@ class ArgumentsWidget(QWidget):
         self.mainLayout.addWidget(self.scrollArea)
 
         self.spacerItem = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
 
     def createLine(self, template, name, description=''):
         MinValue = -999999
@@ -84,19 +91,17 @@ class ArgumentsWidget(QWidget):
         widget = QWidget(self.scrollAreaWidget)
         widget.setToolTip(description)
         # widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        layout = QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        self.lineLayout = QHBoxLayout(widget)
+        self.lineLayout.setContentsMargins(0, 0, 0, 0)
+        self.lineLayout.setSpacing(2)
         label = QCheckBox(name)
-        label.setFixedSize(100, FixedHeight)
-        layout.addWidget(label)
+        label.setFixedHeight(FixedHeight)
+        self.lineLayout.addWidget(label)
         for var in variables:
             varType = var[1:4].lower()
-            # comboItems = {'k': 'Kilobytes', 'M': 'Megabytes'}
-            comboItems = var[var.find('['):var.find(']')+1].replace('[', '{').replace(']', '}')
-            # if comboItems:
-                # comboItems = json.loads(comboItems)
-                # print(comboItems)
+            comboItems = var[var.find('['):var.find(']') + 1].replace('[', '{').replace(']', '}')
+            if comboItems:
+                comboItems = json.loads(comboItems.replace("'", '"'))
             tip = var[var.find('(') + 1:var.find(')')]
             if varType == 'int':
                 integer = QSpinBox()
@@ -105,7 +110,7 @@ class ArgumentsWidget(QWidget):
                 integer.setMinimum(MinValue)
                 integer.setMaximum(MaxValue)
                 integer.setToolTip(tip)
-                layout.addWidget(integer)
+                self.lineLayout.addWidget(integer)
             elif varType == 'flo':
                 real = QDoubleSpinBox()
                 real.setFixedSize(FixedWidth, FixedHeight)
@@ -113,29 +118,32 @@ class ArgumentsWidget(QWidget):
                 real.setMinimum(MinValue)
                 real.setMaximum(MaxValue)
                 real.setToolTip(tip)
-                layout.addWidget(real)
+                self.lineLayout.addWidget(real)
             elif varType == 'str':
                 string = QLineEdit()
                 string.setMinimumWidth(60)
                 string.setFixedHeight(FixedHeight)
                 # string.setText('')
                 string.setToolTip(tip)
-                layout.addWidget(string)
-            # elif varType == 'com':
-            #     combo = QComboBox()
-            #     combo.setFixedSize(100, FixedHeight)
-            #     # combo.setCurrentIndex(0)
-            #     for name, hint in comboItems.items():
-            #         combo.addItem('{} ({})'.format(name, hint), name)
-            #     layout.addWidget(combo)
-            #     combo.setToolTip(tip)
-        self.scrollLayout.removeItem(self.spacerItem)
-        self.scrollLayout.addWidget(widget)
-        self.scrollLayout.addItem(self.spacerItem)
+                self.lineLayout.addWidget(string)
+            elif varType == 'com':
+                combo = QComboBox()
+                combo.setFixedHeight(FixedHeight)
+                combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
+                # combo.setCurrentIndex(0)
+                for name, hint in comboItems.items():
+                    combo.addItem('{} ({})'.format(name, hint), name)
+                self.lineLayout.addWidget(combo)
+                combo.setToolTip(tip)
+        rightSpacer = QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Ignored)
+        self.lineLayout.addSpacerItem(rightSpacer)
+        self.scrollAreaWidget.layout().removeItem(self.spacerItem)
+        self.scrollAreaWidget.layout().addWidget(widget)
+        self.scrollAreaWidget.layout().addItem(self.spacerItem)
 
     def createLinesFromConfig(self, config):
-        for flag in config.flags():
-            self.createLine(flag['Template'], flag['Name'], flag['Description'])
+        for name, data in config.flags().items():
+            self.createLine(data[1], name, '<qt>{0}</qt>'.format(data[0]))
 
     def addArgument(self, name, description, template):
         pass
@@ -144,7 +152,7 @@ class ArgumentsWidget(QWidget):
         pass
 
     def clear(self):
-        pass
+        clearLayout(self.scrollAreaWidget.layout())
 
     def loadFromText(self, text):
         pass
@@ -158,9 +166,11 @@ if __name__ == '__main__':
     app = QApplication([])
     window = ArgumentsWidget()
 
-    string = r'-geometry #int(Width) #int(Height)+#int(Left)+#int(Top) #string(Haha) #combobox["k":"Kilobytes", "M":"Megabytes"]()'
-    for i in range(100):
-        window.createLine(string)
+    # string = r'-geometry #int(Width) #int(Height)+#int(Left)+#int(Top) #string(Haha) #combobox["k":"Kilobytes", "M":"Megabytes"]()'
+    with open(r'./configs/Houdini_16.0-16.5.cfg', 'rt') as file:
+        data = json.load(file)
+    for flag in data['Flags']:
+        window.createLine(flag['Template'], flag['Name'], flag['Description'])
 
     window.show()
     app.exec_()
