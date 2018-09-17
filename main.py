@@ -25,6 +25,9 @@ def checkHome():
         os.mkdir(presetsPath)
 
 
+
+
+
 if __name__ == '__main__':
     def my_excepthook(type, value, tback):
         sys.__excepthook__(type, value, tback)
@@ -38,6 +41,7 @@ if __name__ == '__main__':
         mainWindow = MainWindow()
         mainWindow.show()
         exitCode = app.exec_()
+        mainWindow.saveAppsList()
     else:
         raise NotImplementedError
     sys.exit(exitCode)

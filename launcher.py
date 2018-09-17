@@ -201,6 +201,13 @@ class MainWindow(QMainWindow):
         self.addAppButton = QPushButton('Add Applications')
         self.addAppButton.clicked.connect(self.addApplication)
         self.allAppsList = QListWidget()
+        appsListPath = os.path.join(homeDir(), 'AppsPaths.apps')
+        if os.path.exists(appsListPath):
+            with open(appsListPath, 'rt') as file:
+                for line in file:
+                    line = line.rstrip('\n')
+                    if os.path.exists(line):
+                        QListWidgetItem(line, self.allAppsList)
         self.appTabLeftLayout = QVBoxLayout()
         self.appTabLeftLayout.addWidget(self.addAppButton)
         self.appTabLeftLayout.addWidget(self.allAppsList)
@@ -262,10 +269,19 @@ class MainWindow(QMainWindow):
     def addApplication(self):
         appLink = QFileDialog.getOpenFileName(self, caption='Application', filter='Application (*.exe)')[0]
         if appLink:
-            item = QListWidgetItem(appLink, self.allAppsList)
-            item.setCheckState(Qt.Checked)
+            QListWidgetItem(appLink, self.allAppsList)
+            # item.setCheckState(Qt.Checked)
 
     def editPreset(self, item):
         preset = item.data(Qt.UserRole)
         self.flagsWidget.clear()
         self.flagsWidget.createLinesFromConfig(preset.config())
+
+    def saveAppsList(self):
+        links = set()
+        for index in range(self.allAppsList.count()):
+            links.add(self.allAppsList.item(index).text())
+        with open(os.path.join(homeDir(), 'AppsPaths.apps'), 'wt') as file:
+            for link in links:
+                file.write(link + '\n')
+
