@@ -26,8 +26,9 @@ class Config(Serialization):
         return self.__flags
 
     def serialize(self):
+        flags = [{'Name': name, 'Description': desc_temp[0], 'Template': desc_temp[1]} for name, desc_temp in self.__flags.items()]
         data = {'AppName': self.__name,
-                'Flags': [{'Name': name, 'Description': desc_temp[0], 'Template': desc_temp[1]} for name, desc_temp in self.__flags.items()]}  # Todo: check
+                'Flags': flags}  # Todo: check
         return super().serialize(data)
 
     def deserialize(self, data):
