@@ -284,4 +284,3 @@ class MainWindow(QMainWindow):
         with open(os.path.join(homeDir(), 'AppsPaths.apps'), 'wt') as file:
             for link in links:
                 file.write(link + '\n')
-
