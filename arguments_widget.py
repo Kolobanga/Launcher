@@ -162,6 +162,11 @@ class ArgumentsWidget(QWidget):
             self.loadFromText(file.read())
 
 
+class FlagsWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+
 if __name__ == '__main__':
     app = QApplication([])
     k = QTabWidget()

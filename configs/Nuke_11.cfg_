@@ -9,7 +9,7 @@
         {
             "Name": "Limit Cache",
             "Description": "Limit the cache memory usage, where size equals a number in bytes. You can specify a different unit by appending k (kilobytes), M (megabytes), or G (gigabytes) after size.",
-            "Template": "-c #int(Size)#combobox['k':'kilobytes', 'M':'megabytes', 'G':'gigabytes'](Units)"
+            "Template": "-c {0}{1}".format(**Values)
         },
         {
             "Name": "Continue After Error",
@@ -29,7 +29,14 @@
         {
             "Name": "Remote view on server",
             "Description": "This allows Nuke to be viewed on one machine while run on another. (Linux only and requires some setting up to allow remote access to the X Server on the target machine).",
-            "Template": "-d #string(Server name)"
+            "Fields": {
+                "Width": {
+                    "Name": "Width",
+                    "Type": "int",
+                    "Default": 1920
+                }
+            }
+            "Template": "-d {Width} {Height}"
         }
     ]
 }

@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 
 from config import Config
@@ -63,7 +64,8 @@ def loadPrestes():
 
 def launchApplication():
     if isWindowsOS():
-        os.system()
+        raise NotImplementedError
+        # subprocess.call()
     elif isLinuxOS():
         raise NotImplementedError
     elif isMacOS():
@@ -110,7 +112,7 @@ class NewPresetDialog(QDialog):
     def getData(parent=None):
         dialog = NewPresetDialog(parent)
         result = dialog.exec_()
-        return (dialog.name(), dialog.config(), result == QDialog.Accepted)
+        return dialog.name(), dialog.config(), result == QDialog.Accepted
 
 
 class MainWindow(QMainWindow):
@@ -158,6 +160,7 @@ class MainWindow(QMainWindow):
         # Right Controls
         self.controlsLayout = QHBoxLayout()
         self.launchButton = QPushButton('Launch')
+        self.launchButton.clicked.connect(self.launch)
         self.launchButton.setFixedWidth(80)
         self.controlsLayout.addWidget(self.launchButton)
         if isWindowsOS():
@@ -260,7 +263,7 @@ class MainWindow(QMainWindow):
     def launch(self):
         cmd = r'S:\Houdini 16.5.588\bin\houdinifx.exe'
         if os.path.exists(cmd):
-            os.system(cmd)
+            subprocess.call(cmd)
 
     def createShortcut(self):
         # Windows only
