@@ -51,7 +51,7 @@ def loadConfigs():
     return configs
 
 
-def loadPrestes():
+def loadPresets():
     presets = {}
     for directory in rootDir(), homeDir():
         for root, folders, files in os.walk(os.path.join(directory, 'presets')):
@@ -72,8 +72,14 @@ def launchApplication():
         raise NotImplementedError
 
 
-def createWindowsShortcut(targetLink, path, name, workDir):
-    raise NotImplementedError
+def createWindowsDesktopShortcut(targetFile, name, icon, comment=None, workDir=None):
+    import win32com.client
+    shell = win32com.client.Dispatch('WScript.Shell')
+    shortcut = shell.CreateShortCut(os.path.join(shell.SpecialFolders("Desktop"), name + '.lnk'))
+    shortcut.TargetPath = targetFile
+    shortcut.IconLocation = icon
+    shortcut.WindowStyle = 1
+    shortcut.save()
 
 
 class NewPresetDialog(QDialog):
@@ -149,7 +155,7 @@ class MainWindow(QMainWindow):
         # Presets Widget
         self.presetList = QListWidget()
         self.presetList.itemClicked.connect(self.editPreset)
-        for preset in loadPrestes().values():
+        for preset in loadPresets().values():
             item = QListWidgetItem(preset.name(), self.presetList)
             item.setData(Qt.UserRole, preset)
         self.presetList.setFixedWidth(130)
@@ -159,23 +165,40 @@ class MainWindow(QMainWindow):
 
         # Right Controls
         self.controlsLayout = QHBoxLayout()
-        self.launchButton = QPushButton('Launch')
-        self.launchButton.clicked.connect(self.launch)
-        self.launchButton.setFixedWidth(80)
-        self.controlsLayout.addWidget(self.launchButton)
-        if isWindowsOS():
-            self.createShortcutButton = QPushButton('Create Shortcut')
-            self.createShortcutButton.setFixedWidth(100)
-            self.controlsLayout.addWidget(self.createShortcutButton)
+
+        # New Preset Button
         self.newPresetButton = QPushButton('New Preset')
         self.newPresetButton.setFixedWidth(80)
         self.newPresetButton.clicked.connect(self.newPreset)
         self.controlsLayout.addWidget(self.newPresetButton)
-        self.saveButton = QPushButton('Save Preset')
-        self.saveButton.setFixedWidth(80)
-        self.controlsLayout.addWidget(self.saveButton)
+
+        # Save Preset Button
+        self.savePresetButton = QPushButton('Save')
+        self.savePresetButton.setFixedWidth(80)
+        self.controlsLayout.addWidget(self.savePresetButton)
+
+        # Delete Preset Button
+        self.deletePresetButton = QPushButton('Delete')
+        self.deletePresetButton.clicked.connect(self.deletePreset)
+        self.controlsLayout.addWidget(self.deletePresetButton)
+
+        # Spacer
         self.controlsSpacerItem = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Ignored)
-        self.controlsLayout.addItem(self.controlsSpacerItem)
+        self.controlsLayout.addSpacerItem(self.controlsSpacerItem)
+
+        # Create Shortcut Button
+        if isWindowsOS():
+            self.createShortcutButton = QPushButton('Create Shortcut')
+            self.createShortcutButton.clicked.connect(self.createShortcut)
+            self.createShortcutButton.setFixedWidth(100)
+            self.controlsLayout.addWidget(self.createShortcutButton)
+
+        # Launch Button
+        self.launchButton = QPushButton('Launch')
+        self.launchButton.clicked.connect(self.launchPreset)
+        self.launchButton.setFixedWidth(80)
+        self.controlsLayout.addWidget(self.launchButton)
+
         self.rightMiddleLayout.addLayout(self.controlsLayout)
 
         # Tabs
@@ -249,25 +272,37 @@ class MainWindow(QMainWindow):
                                      'Confirm File Replace',
                                      'Would you like to replace existing preset?',
                                      QMessageBox.Ok | QMessageBox.Cancel)
-                result = dialog.exec_()
-                if result == QMessageBox.Rejected:
+                if dialog.exec_() == QMessageBox.Rejected:
                     return
             preset.saveToFile(filename)
 
             item = QListWidgetItem(name, self.presetList)
             item.setData(Qt.UserRole, preset)
 
+    def deletePreset(self):
+        if len(self.presetList.selectedIndexes()) == 0:
+            return
+        dialog = QMessageBox(QMessageBox.Information,
+                             'Confirm File Delete',
+                             'Would you like to delete this preset?',
+                             QMessageBox.Ok | QMessageBox.Cancel)
+        if dialog.exec_() == QMessageBox.Rejected:
+            return
+        os.remove(self.presetList.currentItem().data(Qt.UserRole).file())
+        self.presetList.currentItem().setHidden(True)
+
     def about(self):
         raise NotImplementedError
 
-    def launch(self):
+    def launchPreset(self):
         cmd = r'S:\Houdini 16.5.588\bin\houdinifx.exe'
         if os.path.exists(cmd):
             subprocess.call(cmd)
 
     def createShortcut(self):
-        # Windows only
-        raise NotImplementedError
+        """Windows only"""
+        createWindowsDesktopShortcut(sys.executable, 'pyme', r'S:\DaVinci Resolve\Resolve.exe')
+
 
     def addApplication(self):
         appLink = QFileDialog.getOpenFileName(self, caption='Application', filter='Application (*.exe)')[0]
@@ -287,4 +322,3 @@ class MainWindow(QMainWindow):
         with open(os.path.join(homeDir(), 'AppsPaths.apps'), 'wt') as file:
             for link in links:
                 file.write(link + '\n')
-

@@ -18,4 +18,4 @@ class Serialization:
 
     def loadFromFile(self, filename):
         with open(filename, 'rt', encoding='utf-8') as file:
-            return self.deserialize(json.load(file))
+            return self.deserialize(json.load(file), filename)

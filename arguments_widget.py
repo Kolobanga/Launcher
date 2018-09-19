@@ -37,6 +37,9 @@ class ArgumentsWidget(QWidget):
         self.spacerItem = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
     def createLine(self, flagData):
+        MinValue = -999999
+        MaxValue = +999999
+
         lineLayout = QHBoxLayout()
         lineLayout.setContentsMargins(0, 0, 0, 0)
         lineLayout.setSpacing(2)
@@ -54,10 +57,16 @@ class ArgumentsWidget(QWidget):
                 hint = fieldName.replace('_', ' ')
                 if isinstance(defaultValue, int):
                     widget = QSpinBox()
+                    widget.setAlignment(Qt.AlignCenter)
+                    widget.setMinimum(MinValue)
+                    widget.setMaximum(MaxValue)
                     widget.setValue(defaultValue)
                     widget.setToolTip(hint)
                 elif isinstance(defaultValue, float):
                     widget = QDoubleSpinBox()
+                    widget.setAlignment(Qt.AlignCenter)
+                    widget.setMinimum(MinValue)
+                    widget.setMaximum(MaxValue)
                     widget.setValue(defaultValue)
                     widget.setToolTip(hint)
                 elif isinstance(defaultValue, bool):
@@ -71,12 +80,16 @@ class ArgumentsWidget(QWidget):
                     widget = QComboBox()
                     for value in defaultValue:
                         widget.addItem(value, value)
+                    widget.setToolTip(hint)
                 elif isinstance(defaultValue, dict):
                     widget = QComboBox()
                     for description, value in defaultValue.items():
                         widget.addItem(description, value)
                     widget.setToolTip(hint)
                 if widget:
+                    if isinstance(widget, QComboBox):
+                        for index in range(widget.count()):
+                            widget.setItemData(index, Qt.AlignCenter, Qt.TextAlignmentRole)
                     lineLayout.addWidget(widget)
             fieldWidgets[fieldName] = widget
         self.__flagsWidgets[flagData.get('Name')] = fieldWidgets

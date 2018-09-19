@@ -24,6 +24,9 @@ class Preset(Serialization):
     def config(self):
         return self.__config
 
+    def setFile(self, link):
+        self.__file = link
+
     def file(self):
         return self.__file
 
@@ -50,8 +53,9 @@ class Preset(Serialization):
                 'Vars': self.__vars}
         return super().serialize(data)
 
-    def deserialize(self, data):
+    def deserialize(self, data, link):
         self.__name = data.get('Name')
+        self.setFile(link)
         self.__config = qApp.configs.get(data.get('Config'))
         self.__flags = data.get('Flags')
         self.__vars = data.get('Vars')
