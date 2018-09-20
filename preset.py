@@ -11,6 +11,16 @@ class Preset(Serialization):
         self.__file = None
         self.__flags = {}  # {'Name': [values, ...]}  # Todo: {} instead []
         self.__vars = {}
+        self.__apps = set()
+
+    def addApplication(self, link):
+        self.__apps.add(link)
+
+    def applications(self):
+        return self.__apps
+
+    def compileArgs(self):
+        return ''
 
     def setName(self, name):
         self.__name = name
@@ -41,6 +51,9 @@ class Preset(Serialization):
 
     def variable(self, name):
         return self.__vars[name]
+
+    def variables(self):
+        return self.__vars
 
     def removeVariable(self, name):
         if name in self.__vars:

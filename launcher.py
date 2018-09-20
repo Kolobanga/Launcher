@@ -62,10 +62,17 @@ def loadPresets():
     return presets
 
 
-def launchApplication():
+def launchApplication(preset):
+    if not preset.applications():
+        return
+    if len(preset.applications()) > 1:
+        pass  # Todo: selecting one from the list
+    else:
+        app = preset.applications()[0]
+    args = preset.compileArgs()
+    os.environ.update(preset.variables())
     if isWindowsOS():
-        raise NotImplementedError
-        # subprocess.call()
+        subprocess.call(app + args)
     elif isLinuxOS():
         raise NotImplementedError
     elif isMacOS():
@@ -80,6 +87,30 @@ def createWindowsDesktopShortcut(targetFile, name, icon, comment=None, workDir=N
     shortcut.IconLocation = icon
     shortcut.WindowStyle = 1
     shortcut.save()
+
+
+def createAction(parent, name, shortcut=None, statusTip=None, toolTip=None, icon=None, callback=None):
+    action = QAction(name, parent)
+    if shortcut:
+        if isinstance(shortcut, str):
+            action.setShortcut(QKeySequence(shortcut))
+        elif isinstance(shortcut, (int, QKeySequence.StandardKey)):
+            action.setShortcut(shortcut)
+        else:
+            raise KeyError('Bad shortcut')
+    if callback:
+        action.triggered.connect(callback)
+    else:
+        action.setDisabled(True)
+    if statusTip:
+        action.setStatusTip(statusTip)
+    if toolTip:
+        action.setToolTip(toolTip)
+    elif statusTip:
+        action.setToolTip(statusTip)
+    if isinstance(icon, QIcon):
+        action.setIcon(icon)
+    return action
 
 
 class NewPresetDialog(QDialog):
@@ -133,18 +164,6 @@ class MainWindow(QMainWindow):
         # Central Widget
         self.centralwidget = QWidget()
         self.setCentralWidget(self.centralwidget)
-
-        # Main Menu
-        self.mainMenu = QMenuBar()
-        self.setMenuBar(self.mainMenu)
-
-        self.quitAction = QAction('Quit', self)
-        self.quitAction.triggered.connect(lambda: qApp.exit(0))
-
-        self.aboutMenu = QMenu('About')
-        self.mainMenu.addMenu(self.aboutMenu)
-
-        self.aboutMenu.addAction('About', self.about)
 
         # Layouts
         self.verticalLayout = QVBoxLayout(self.centralwidget)
@@ -225,8 +244,10 @@ class MainWindow(QMainWindow):
 
         # All Apps
         self.addAppButton = QPushButton('Add Applications')
-        self.addAppButton.clicked.connect(self.addApplication)
+        self.addAppButton.clicked.connect(self.addApplications)
         self.allAppsList = QListWidget()
+        self.allAppsList.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.allAppsList.addAction(createAction(self.allAppsList, 'Remove Selected', Qt.Key_Delete, callback=self.removeApplications))
         appsListPath = os.path.join(homeDir(), 'AppsPaths.apps')
         if os.path.exists(appsListPath):
             with open(appsListPath, 'rt') as file:
@@ -260,6 +281,31 @@ class MainWindow(QMainWindow):
 
         qApp.configs = loadConfigs()
 
+        self.initMainMenu()
+
+    def initMainMenu(self):
+        # Application Menu
+        self.quitCommand = createAction(self, 'Quit', 'Alt+Q', callback=lambda: qApp.exit(0))
+
+        self.applicationMenu = self.menuBar().addMenu('Application')
+        self.applicationMenu.addAction(self.quitCommand)
+
+        # Presets Menu
+        self.newPresetCommand = createAction(self, 'New Preset...', 'Ctrl+N', callback=self.newPreset)
+        self.savePresetCommand = createAction(self, 'Save Preset', 'Ctrl+S')
+        self.duplicatePresetCommand = createAction(self, 'Duplicate Preset')
+
+        self.presetsMenu = self.menuBar().addMenu('Presets')
+        self.presetsMenu.addAction(self.newPresetCommand)
+        self.presetsMenu.addAction(self.savePresetCommand)
+        self.presetsMenu.addAction(self.duplicatePresetCommand)
+
+        # Configs Menu
+        self.newConfigCommand = createAction(self, 'New Config...', 'Ctrl+Shift+N')
+
+        self.configsMenu = self.menuBar().addMenu('Configs')
+        self.configsMenu.addAction(self.newConfigCommand)
+
     def newPreset(self):
         answer = NewPresetDialog.getData(self)
         if answer[2] and answer[0]:  # Accepted and not empty name
@@ -272,7 +318,7 @@ class MainWindow(QMainWindow):
                                      'Confirm File Replace',
                                      'Would you like to replace existing preset?',
                                      QMessageBox.Ok | QMessageBox.Cancel)
-                if dialog.exec_() == QMessageBox.Rejected:
+                if dialog.exec_() == QMessageBox.Cancel:
                     return
             preset.saveToFile(filename)
 
@@ -280,35 +326,34 @@ class MainWindow(QMainWindow):
             item.setData(Qt.UserRole, preset)
 
     def deletePreset(self):
-        if len(self.presetList.selectedIndexes()) == 0:
+        if not self.presetList.selectedIndexes():
             return
         dialog = QMessageBox(QMessageBox.Information,
                              'Confirm File Delete',
                              'Would you like to delete this preset?',
                              QMessageBox.Ok | QMessageBox.Cancel)
-        if dialog.exec_() == QMessageBox.Rejected:
+        if dialog.exec_() == QMessageBox.Cancel:
             return
         os.remove(self.presetList.currentItem().data(Qt.UserRole).file())
         self.presetList.currentItem().setHidden(True)
 
-    def about(self):
-        raise NotImplementedError
-
     def launchPreset(self):
-        cmd = r'S:\Houdini 16.5.588\bin\houdinifx.exe'
-        if os.path.exists(cmd):
-            subprocess.call(cmd)
+        if self.presetList.selectedIndexes():
+            launchApplication(self.presetList.currentItem().data(Qt.UserRole))
 
     def createShortcut(self):
         """Windows only"""
         createWindowsDesktopShortcut(sys.executable, 'pyme', r'S:\DaVinci Resolve\Resolve.exe')
 
+    def addApplications(self):
+        appLinks = QFileDialog.getOpenFileNames(self, caption='Application', filter='Application (*.exe)')[0]
+        if appLinks:
+            for link in appLinks:
+                QListWidgetItem(link, self.allAppsList)
 
-    def addApplication(self):
-        appLink = QFileDialog.getOpenFileName(self, caption='Application', filter='Application (*.exe)')[0]
-        if appLink:
-            QListWidgetItem(appLink, self.allAppsList)
-            # item.setCheckState(Qt.Checked)
+    def removeApplications(self):
+        for item in self.allAppsList.selectedItems():
+            self.allAppsList.takeItem(self.allAppsList.row(item))
 
     def editPreset(self, item):
         preset = item.data(Qt.UserRole)
