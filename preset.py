@@ -9,7 +9,7 @@ class Preset(Serialization):
         self.__name = None
         self.__config = config
         self.__file = None
-        self.__flags = {}  # {'Name': [values, ...]}  # Todo: {} instead []
+        self.__flags = {}
         self.__vars = {}
         self.__apps = set()
 

@@ -43,5 +43,5 @@ if __name__ == '__main__':
         exitCode = app.exec_()
         mainWindow.saveAppsList()
     else:
-        raise NotImplementedError
+        input('Yeeeeaaaah')
     sys.exit(exitCode)

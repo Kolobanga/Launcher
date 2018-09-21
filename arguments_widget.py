@@ -36,74 +36,78 @@ class ArgumentsWidget(QWidget):
 
         self.spacerItem = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
-    def createLine(self, flagData):
+    def loadFromConfig(self, config):
         MinValue = -999999
         MaxValue = +999999
 
-        lineLayout = QHBoxLayout()
-        lineLayout.setContentsMargins(0, 0, 0, 0)
-        lineLayout.setSpacing(2)
+        self.__flagsWidgets = {}
 
-        nameCheckBox = QCheckBox(flagData.get('Name'))
-        nameCheckBox.setToolTip(flagData.get('Description'))
-        lineLayout.addWidget(nameCheckBox)
-
-        fieldWidgets = {}
-
-        fields = flagData.get('Fields')
-        if fields:
-            for fieldName, defaultValue in fields.items():
-                widget = None
-                hint = fieldName.replace('_', ' ')
-                if isinstance(defaultValue, int):
-                    widget = QSpinBox()
-                    widget.setAlignment(Qt.AlignCenter)
-                    widget.setMinimum(MinValue)
-                    widget.setMaximum(MaxValue)
-                    widget.setValue(defaultValue)
-                    widget.setToolTip(hint)
-                elif isinstance(defaultValue, float):
-                    widget = QDoubleSpinBox()
-                    widget.setAlignment(Qt.AlignCenter)
-                    widget.setMinimum(MinValue)
-                    widget.setMaximum(MaxValue)
-                    widget.setValue(defaultValue)
-                    widget.setToolTip(hint)
-                elif isinstance(defaultValue, bool):
-                    widget = QCheckBox()
-                    widget.setCheckState(defaultValue)
-                    widget.setToolTip(defaultValue)
-                elif isinstance(defaultValue, str):
-                    widget = QLineEdit(defaultValue)
-                    widget.setToolTip(hint)
-                elif isinstance(defaultValue, list):
-                    widget = QComboBox()
-                    for value in defaultValue:
-                        widget.addItem(value, value)
-                    widget.setToolTip(hint)
-                elif isinstance(defaultValue, dict):
-                    widget = QComboBox()
-                    for description, value in defaultValue.items():
-                        widget.addItem(description, value)
-                    widget.setToolTip(hint)
-                if widget:
-                    if isinstance(widget, QComboBox):
-                        for index in range(widget.count()):
-                            widget.setItemData(index, Qt.AlignCenter, Qt.TextAlignmentRole)
-                    lineLayout.addWidget(widget)
-            fieldWidgets[fieldName] = widget
-        self.__flagsWidgets[flagData.get('Name')] = fieldWidgets
-        self.scrollAreaWidget.layout().removeItem(self.spacerItem)
-        self.scrollAreaWidget.layout().addLayout(lineLayout)
-        self.scrollAreaWidget.layout().addItem(self.spacerItem)
-
-    def createLinesFromConfig(self, config):
         for flag in config.flags().values():
-            self.createLine(flag)
+            flagData = flag
+
+            lineLayout = QHBoxLayout()
+            lineLayout.setContentsMargins(0, 0, 0, 0)
+            lineLayout.setSpacing(2)
+
+            nameCheckBox = QCheckBox(flagData.get('Name'))
+            nameCheckBox.setToolTip(flagData.get('Description'))
+            lineLayout.addWidget(nameCheckBox)
+
+            fieldWidgets = {}
+
+            fields = flagData.get('Fields')
+            if fields:
+                for fieldName, defaultValue in fields.items():
+                    widget = None
+                    hint = fieldName.replace('_', ' ')
+                    if isinstance(defaultValue, int):
+                        widget = QSpinBox()
+                        widget.setAlignment(Qt.AlignCenter)
+                        widget.setMinimum(MinValue)
+                        widget.setMaximum(MaxValue)
+                        widget.setValue(defaultValue)
+                        widget.setToolTip(hint)
+                    elif isinstance(defaultValue, float):
+                        widget = QDoubleSpinBox()
+                        widget.setAlignment(Qt.AlignCenter)
+                        widget.setMinimum(MinValue)
+                        widget.setMaximum(MaxValue)
+                        widget.setValue(defaultValue)
+                        widget.setToolTip(hint)
+                    elif isinstance(defaultValue, bool):
+                        widget = QCheckBox()
+                        widget.setCheckState(defaultValue)
+                        widget.setToolTip(defaultValue)
+                    elif isinstance(defaultValue, str):
+                        widget = QLineEdit(defaultValue)
+                        widget.setToolTip(hint)
+                    elif isinstance(defaultValue, list):
+                        widget = QComboBox()
+                        for value in defaultValue:
+                            widget.addItem(value, value)
+                        widget.setToolTip(hint)
+                    elif isinstance(defaultValue, dict):
+                        widget = QComboBox()
+                        for description, value in defaultValue.items():
+                            widget.addItem(description, value)
+                        widget.setToolTip(hint)
+                    if widget:
+                        if isinstance(widget, QComboBox):
+                            for index in range(widget.count()):
+                                widget.setItemData(index, Qt.AlignCenter, Qt.TextAlignmentRole)
+                        lineLayout.addWidget(widget)
+                fieldWidgets[fieldName] = widget
+            self.__flagsWidgets[flagData.get('Name')] = fieldWidgets
+            self.scrollAreaWidget.layout().removeItem(self.spacerItem)
+            self.scrollAreaWidget.layout().addLayout(lineLayout)
+            self.scrollAreaWidget.layout().addItem(self.spacerItem)
 
     def clear(self):
         self.__flagsWidgets.clear()
         clearLayout(self.scrollAreaWidget.layout())
+
+    def widgets(self):
+        return self.__flagsWidgets
 
 
 if __name__ == '__main__':
@@ -117,7 +121,7 @@ if __name__ == '__main__':
     with open(r'./configs/Houdini_16.0-16.5.cfg', 'rt') as file:
         data = json.load(file)
     for flag in data['Flags']:
-        window.createLine(flag)
+        window.loadFromConfig(flag)
 
     k.show()
     app.exec_()

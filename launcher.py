@@ -79,13 +79,15 @@ def launchApplication(preset):
         raise NotImplementedError
 
 
-def createWindowsDesktopShortcut(targetFile, name, icon, comment=None, workDir=None):
+def createWindowsDesktopShortcut(targetFile, arguments, name, icon=None, comment=None, workDir=None):
     import win32com.client
     shell = win32com.client.Dispatch('WScript.Shell')
     shortcut = shell.CreateShortCut(os.path.join(shell.SpecialFolders("Desktop"), name + '.lnk'))
     shortcut.TargetPath = targetFile
-    shortcut.IconLocation = icon
+    if icon:
+        shortcut.IconLocation = icon
     shortcut.WindowStyle = 1
+    shortcut.arguments = arguments
     shortcut.save()
 
 
@@ -173,7 +175,7 @@ class MainWindow(QMainWindow):
         self.verticalLayout.addLayout(self.middleHorizontalLayout)
         # Presets Widget
         self.presetList = QListWidget()
-        self.presetList.itemClicked.connect(self.editPreset)
+        self.presetList.currentItemChanged.connect(self.editPreset)
         for preset in loadPresets().values():
             item = QListWidgetItem(preset.name(), self.presetList)
             item.setData(Qt.UserRole, preset)
@@ -343,7 +345,8 @@ class MainWindow(QMainWindow):
 
     def createShortcut(self):
         """Windows only"""
-        createWindowsDesktopShortcut(sys.executable, 'pyme', r'S:\DaVinci Resolve\Resolve.exe')
+        preset = self.presetList.currentItem().data(Qt.UserRole)
+        createWindowsDesktopShortcut(sys.executable, '"{0}" "{1}"'.format(sys.argv[0], preset.name()), preset.name(), r"S:\Houdini 16.5.588\bin\houdinifx.exe")
 
     def addApplications(self):
         appLinks = QFileDialog.getOpenFileNames(self, caption='Application', filter='Application (*.exe)')[0]
@@ -358,7 +361,7 @@ class MainWindow(QMainWindow):
     def editPreset(self, item):
         preset = item.data(Qt.UserRole)
         self.flagsWidget.clear()
-        self.flagsWidget.createLinesFromConfig(preset.config())
+        self.flagsWidget.loadFromConfig(preset.config())
 
     def saveAppsList(self):
         links = set()
@@ -367,3 +370,7 @@ class MainWindow(QMainWindow):
         with open(os.path.join(homeDir(), 'AppsPaths.apps'), 'wt') as file:
             for link in links:
                 file.write(link + '\n')
+
+    def savePreset(self):
+        preset = self.presetList.currentItem().data(Qt.UserRole)
+        preset.setVariable()
