@@ -96,11 +96,12 @@ class ArgumentsWidget(QWidget):
                             for index in range(widget.count()):
                                 widget.setItemData(index, Qt.AlignCenter, Qt.TextAlignmentRole)
                         lineLayout.addWidget(widget)
-                fieldWidgets[fieldName] = widget
+                    fieldWidgets[fieldName] = widget
             self.__flagsWidgets[flagData.get('Name')] = fieldWidgets
             self.scrollAreaWidget.layout().removeItem(self.spacerItem)
             self.scrollAreaWidget.layout().addLayout(lineLayout)
             self.scrollAreaWidget.layout().addItem(self.spacerItem)
+        print(self.__flagsWidgets)
 
     def clear(self):
         self.__flagsWidgets.clear()
