@@ -41,8 +41,22 @@ def isMacOS():
 
 
 def loadConfigs():
+    envVar = os.environ.get('DCC_LAUNCHER_PATHS')
+    # if not envVar:
+    #     directories = (rootDir(), homeDir())
+    # else:
+    if not int(os.environ.get('DCC_LAUNCHER_PATHS_ONLY')):
+        directories = (rootDir(), homeDir(), *envVar.split(';'))
+    else:
+        directories = envVar.split(';')
     configs = {}
-    for directory in rootDir(), homeDir():
+    for directory in directories:
+        if directory == rootDir():
+            postfix = '_root'
+        elif directory == homeDir():
+            postfix = '_home'
+        elif directory in envVar.split(';'):
+            postfix = '_studio'
         for root, folders, files in os.walk(os.path.join(directory, 'configs')):
             for file in files:
                 if file.lower().endswith('.cfg'):
