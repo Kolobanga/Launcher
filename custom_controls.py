@@ -26,7 +26,7 @@ class LineEdit(QLineEdit):
 
 class ComboBox(QComboBox):
     def __init__(self):
-        super(ComboBox, self)
+        super(ComboBox, self).__init__()
 
     def value(self):
         return self.currentData(Qt.UserRole)

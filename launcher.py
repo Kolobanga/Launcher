@@ -209,6 +209,7 @@ class MainWindow(QMainWindow):
 
         # Save Preset Button
         self.savePresetButton = QPushButton('Save')
+        self.savePresetButton.clicked.connect(self.savePreset)
         self.savePresetButton.setFixedWidth(80)
         self.controlsLayout.addWidget(self.savePresetButton)
 
@@ -387,4 +388,23 @@ class MainWindow(QMainWindow):
 
     def savePreset(self):
         preset = self.presetList.currentItem().data(Qt.UserRole)
-        preset.setVariable()
+        for row in range(self.vars.rowCount()):
+            varItem = self.vars.item(row, 0)
+            if varItem:
+                varName = varItem.text()
+                varItem = self.vars.item(row, 1)
+                if varItem:
+                    varValue = varItem.text()
+                    preset.setVariable(varName, varValue)
+                else:
+                    break
+            else:
+                break
+        flags = {}
+        for name, data in self.flagsWidget.widgets().items():
+            fieldValues = {}
+            for fieldName, fieldWidget in data[1].items():
+                fieldValues[fieldName.replace(' ', '_')] = fieldWidget.value()
+            flags[name] = [data[0].isChecked(), fieldValues]
+        preset.flags = flags
+        preset.saveToFile(preset.file())

@@ -9,7 +9,7 @@ class Preset(Serialization):
         self.__name = None
         self.__config = config
         self.__file = None
-        self.__flags = {}
+        self.flags = {}
         self.__vars = {}
         self.__apps = set()
 
@@ -41,10 +41,10 @@ class Preset(Serialization):
         return self.__file
 
     def setFlag(self, name, values):
-        self.__flags[name] = values
+        self.flags[name] = values
 
     def removeFlag(self, name):
-        del self.__flags[name]
+        del self.flags[name]
 
     def setVariable(self, name, value):
         self.__vars[name] = value
@@ -62,7 +62,7 @@ class Preset(Serialization):
     def serialize(self):
         data = {'Name': self.__name,
                 'Config': self.__config.name(),
-                'Flags': self.__flags,
+                'Flags': self.flags,
                 'Vars': self.__vars}
         return super().serialize(data)
 
@@ -70,6 +70,6 @@ class Preset(Serialization):
         self.__name = data.get('Name')
         self.setFile(link)
         self.__config = qApp.configs.get(data.get('Config'))
-        self.__flags = data.get('Flags')
+        self.flags = data.get('Flags')
         self.__vars = data.get('Vars')
         return super().deserialize(data)

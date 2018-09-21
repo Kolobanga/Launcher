@@ -1,5 +1,7 @@
 import json
 
+from custom_controls import CheckBox, LineEdit, ComboBox
+
 try:
     from PyQt5.QtWidgets import *
     from PyQt5.QtCore import *
@@ -53,7 +55,7 @@ class ArgumentsWidget(QWidget):
             nameCheckBox.setToolTip(flagData.get('Description'))
             lineLayout.addWidget(nameCheckBox)
 
-            fieldWidgets = {}
+            fieldWidgets = [nameCheckBox, {}]
 
             fields = flagData.get('Fields')
             if fields:
@@ -75,19 +77,19 @@ class ArgumentsWidget(QWidget):
                         widget.setValue(defaultValue)
                         widget.setToolTip(hint)
                     elif isinstance(defaultValue, bool):
-                        widget = QCheckBox()
+                        widget = CheckBox()
                         widget.setCheckState(defaultValue)
                         widget.setToolTip(defaultValue)
                     elif isinstance(defaultValue, str):
-                        widget = QLineEdit(defaultValue)
+                        widget = LineEdit(defaultValue)
                         widget.setToolTip(hint)
                     elif isinstance(defaultValue, list):
-                        widget = QComboBox()
+                        widget = ComboBox()
                         for value in defaultValue:
                             widget.addItem(value, value)
                         widget.setToolTip(hint)
                     elif isinstance(defaultValue, dict):
-                        widget = QComboBox()
+                        widget = ComboBox()
                         for description, value in defaultValue.items():
                             widget.addItem(description, value)
                         widget.setToolTip(hint)
@@ -96,12 +98,11 @@ class ArgumentsWidget(QWidget):
                             for index in range(widget.count()):
                                 widget.setItemData(index, Qt.AlignCenter, Qt.TextAlignmentRole)
                         lineLayout.addWidget(widget)
-                    fieldWidgets[fieldName] = widget
+                    fieldWidgets[1][fieldName] = widget
             self.__flagsWidgets[flagData.get('Name')] = fieldWidgets
             self.scrollAreaWidget.layout().removeItem(self.spacerItem)
             self.scrollAreaWidget.layout().addLayout(lineLayout)
             self.scrollAreaWidget.layout().addItem(self.spacerItem)
-        print(self.__flagsWidgets)
 
     def clear(self):
         self.__flagsWidgets.clear()
